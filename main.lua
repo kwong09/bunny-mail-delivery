@@ -1,10 +1,15 @@
 function love.load()
+    camera = require 'libraries/camera'
+    cam = camera()
     anim8 = require 'libraries/anim8'
     love.graphics.setDefaultFilter("nearest", "nearest")
+    
+    sti = require 'libraries/sti'
+    gameMap = sti('maps/testMap.lua')
 
     player = {}
-    player.x = 0
-    player.y = 0
+    player.x = love.graphics.getWidth() / 2
+    player.y = love.graphics.getHeight() / 2
     player.speed = 3
     player.spriteSheet = love.graphics.newImage('sprites/spritesheet.png')
     
@@ -51,8 +56,53 @@ function love.update(dt)
     end
 
     player.anim:update(dt)
+
+    cam:lookAt(player.x, player.y)
+
+
+    --borders--
+    local w = love.graphics.getWidth()
+    local h = love.graphics.getHeight()
+
+    local mapW = gameMap.width * gameMap.tilewidth
+    local mapH = gameMap.height * gameMap.tileheight
+
+    if cam.x < w / 2 then
+        cam.x = w / 2
+    end
+    if cam.x > (mapW - w / 2) then
+        cam.x = (mapW - w / 2)
+    end
+
+    if cam.y < h / 2 then
+        cam.y = h / 2
+    end
+    
+    if cam.y > (mapH - h / 2) then
+        cam.y = (mapH - h / 2)
+    end
+
+    if player.x < 30 then
+        player.x = 30
+    end
+    
+    if player.x > mapW - 30 then
+        player.x = mapW - 30
+    end
+
+    if player.y < 10 then
+        player.y = 10
+    end
+
+    if player.y > mapH - 60 then
+        player.y = mapH - 60
+    end
 end
 
 function love.draw()
-    player.anim:draw(player.spriteSheet, player.x, player.y, nil, 10)
+    cam:attach()
+        gameMap:drawLayer(gameMap.layers["ground"])
+        gameMap:drawLayer(gameMap.layers["trees"])
+        player.anim:draw(player.spriteSheet, player.x, player.y, nil, 6, nil, 6, 9)
+    cam:detach()
 end
