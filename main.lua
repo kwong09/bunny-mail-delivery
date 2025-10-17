@@ -2,15 +2,20 @@ function love.load()
     camera = require 'libraries/camera'
     cam = camera()
     anim8 = require 'libraries/anim8'
+
+    windfield = require 'libraries/windfield'
+    world = windfield.newWorld(0, 0)
     love.graphics.setDefaultFilter("nearest", "nearest")
     
     sti = require 'libraries/sti'
     gameMap = sti('maps/testMap.lua')
 
     player = {}
+    player.collider = world:newBSGRectangleCollider(400, 250, 60, 100, 8)
+    player.collider:setFixedRotation(true)
     player.x = love.graphics.getWidth() / 2
     player.y = love.graphics.getHeight() / 2
-    player.speed = 3
+    player.speed = 250
     player.spriteSheet = love.graphics.newImage('sprites/spritesheet.png')
     
     player.grid = anim8.newGrid(12, 18, player.spriteSheet:getWidth(), player.spriteSheet:getHeight())
@@ -22,38 +27,59 @@ function love.load()
     player.animations.up = anim8.newAnimation(player.grid('1-4', 4), 0.2)
 
     player.anim = player.animations.left
+
+    --tree and wall collider
+    walls = {}
+    if gameMap.layers["walls"] then
+        for i, obj in pairs(gameMap.layers["walls"].objects) do
+            local wall = world:newRectangleCollider(obj.x, obj.y, obj.width, obj.height)
+            wall:setType('static')
+            table.insert(walls, wall)
+        end
+    end
+
+    
 end
 
 function love.update(dt)
     local isMoving = false
 
+    local vx = 0
+    local vy = 0
+
     if love.keyboard.isDown("right") then
-        player.x = player.x + player.speed
+        vx = player.speed
         player.anim = player.animations.right
         isMoving = true
     end
 
     if love.keyboard.isDown("left") then
-        player.x = player.x - player.speed
+        vx = player.speed * -1
         player.anim = player.animations.left
         isMoving = true
     end
 
     if love.keyboard.isDown("down") then
-        player.y = player.y + player.speed
+        vy = player.speed
         player.anim = player.animations.down
         isMoving = true
     end
 
     if love.keyboard.isDown("up") then
-        player.y = player.y - player.speed
+        vy = player.speed * -1
         player.anim = player.animations.up
         isMoving = true
     end
 
+    player.collider:setLinearVelocity(vx, vy)
+
     if isMoving == false then
         player.anim:gotoFrame(2)
     end
+
+    world:update(dt)
+    player.x = player.collider:getX()
+    player.y = player.collider:getY()
 
     player.anim:update(dt)
 
@@ -97,6 +123,7 @@ function love.update(dt)
     if player.y > mapH - 60 then
         player.y = mapH - 60
     end
+
 end
 
 function love.draw()
@@ -104,5 +131,6 @@ function love.draw()
         gameMap:drawLayer(gameMap.layers["ground"])
         gameMap:drawLayer(gameMap.layers["trees"])
         player.anim:draw(player.spriteSheet, player.x, player.y, nil, 6, nil, 6, 9)
+        world:draw()
     cam:detach()
 end
